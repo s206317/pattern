@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Home</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <!--
+      Need a visual blank slate?
+      Remove all code in `styles.css`!
+    -->
+    <link rel="stylesheet" href="styles.css" />
+    <script type="module" src="script.js"></script>
+  </head>
+  <body>
+    <nav>
+      <a href="/" aria-current="page">Home</a>
+      <a href="/page2.html">Other page</a>
+    </nav>
+    <main>
+      <h1>Home page</h1>
+    </main>
+  </body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Audio to Vibration</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Audio to Vibration</h1>
+    <input type="file" id="audioFileInput" accept="audio/*" />
+    <button id="analyzeButton">Analyze and Vibrate</button>
+    <pre id="vibrationPattern"></pre>
+
+    <script>
+      document
+        .getElementById('analyzeButton')
+        .addEventListener('click', function () {
+          const fileInput = document.getElementById('audioFileInput');
+          if (fileInput.files.length === 0) {
+            alert('Please select an audio file.');
+            return;
+          }
+
+          const file = fileInput.files[0];
+          const audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+          const reader = new FileReader();
+
+          reader.onload = function (event) {
+            audioContext.decodeAudioData(
+              event.target.result,
+              function (buffer) {
+                const rawData = buffer.getChannelData(0);
+                const sampleRate = audioContext.sampleRate;
+
+                // Process the rawData to create a vibration pattern
+                const vibrationPattern = createVibrationPattern(
+                  rawData,
+                  sampleRate
+                );
+
+                // Display the vibration pattern
+                document.getElementById('vibrationPattern').textContent =
+                  JSON.stringify(vibrationPattern);
+
+                // Trigger the vibration pattern
+                if ('vibrate' in navigator) {
+                  navigator.vibrate(vibrationPattern);
+                } else {
+                  console.log('Vibration API not supported on this device.');
+                }
+              }
+            );
+          };
+
+          reader.readAsArrayBuffer(file);
+        });
+
+      function createVibrationPattern(rawData, sampleRate) {
+        const pattern = [];
+        const length = rawData.length;
+        const chunkSize = Math.floor(sampleRate / 10); // 100ms chunks
+
+        for (let i = 0; i < length; i += chunkSize) {
+          let chunk = rawData.slice(i, i + chunkSize);
+          let sum = chunk.reduce((acc, val) => acc + Math.abs(val), 0);
+          let average = sum / chunk.length;
+
+          if (average > 0.01) {
+            // Threshold for detecting significant audio
+            pattern.push(100); // Vibrate for 100ms
+          } else {
+            pattern.push(100); // Pause for 100ms
+          }
+        }
+
+        return pattern;
+      }
+    </script>
+  </body>
+</html>
